@@ -1,0 +1,19 @@
+{
+	"version": "10",
+	"aliases": {
+		"acacia-mine": {
+			"url": "https://projects.pawsey.org.au",
+			"accessKey": "insert access ID",
+			"secretKey": "insert secret key",
+			"api": "s3v4",
+			"path": "auto"
+		},
+		"local": {
+			"url": "http://localhost:9000",
+			"accessKey": "",
+			"secretKey": "",
+			"api": "S3v4",
+			"path": "auto"
+		}
+	}
+}

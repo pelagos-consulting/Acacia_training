@@ -1,9 +1,9 @@
 #!/bin/bash --login
 #SBATCH --account={account}
 #SBATCH --job-name=stageTar
-#SBATCH --partition={copy_queue}
+#SBATCH --partition=copy
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=8
 #SBATCH --export=NONE
 
 # You may have to change these module load commands

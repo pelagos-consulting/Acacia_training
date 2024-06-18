@@ -1,14 +1,14 @@
 #!/bin/bash --login
-#SBATCH --account=courses01
-#SBATCH --partition=debuq
+#SBATCH --account={account}
+#SBATCH --partition={work_queue}
 #SBATCH --job-name=superJob
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --nodes=1 # Total number of nodes
+#SBATCH --ntasks=1 # Total number of MPI tasks
+#SBATCH --cpus-per-task=8 # CPU cores per MPI task
+#SBATCH --mem=1G
 #SBATCH --time=00:01:00
-#SBATCH --export=NONE
 
-cd /scratch/courses01/cou001/working
+cd /scratch/${PAWSEY_PROJECT}/${USER}
 
 # Run hostname just because
 hostname
@@ -16,5 +16,5 @@ hostname
 # Make an empty file
 touch run.txt 
 
-# Don't actually run anything
+# Don't actually run anything, replace this with actual work
 echo srun toolName arguments

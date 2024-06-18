@@ -14,8 +14,13 @@ dateTime=datetime.now().strftime("%Y%m%d-LOCAL-%H-%M-%S")
 # Your alias for interacting with Acacia
 acaciaAlias="acacia-mine"
 
-# Your chosen bucket name
+# Your chosen bucket name (must edit this)
 BucketName="courses01-acacia-tmp"
+
+# Set copy_queue and debug_queue and rclone version
+copy_queue="copy"
+debug_queue="debug"
+rclone_version="1.63.1"
 
 # Path to get files from Acacia, set this to None for no staging
 acaciaInPath=f"{BucketName}/simulation.tar.gz"
@@ -24,22 +29,10 @@ acaciaInPath=f"{BucketName}/simulation.tar.gz"
 acaciaOutPath=f"{BucketName}/simulation-{dateTime}.tar.gz"
 
 # Path in scratch to work from
-scratchDir=f"/scratch/{account}/{os.environ['USER']}/working"
+scratchDir=f"/scratch/{account}/{os.environ['USER']}/work"
 
 # actually Run the super job?
 runSuper=True
-
-# Set copy_queue and debug_queue depending on the hostname
-hostname=os.environ['HOSTNAME']
-if "setonix" in hostname:
-    copy_queue="copy"
-    debug_queue="debug"
-    rclone_version="1.58.1"
-else:
-    copy_queue="copyq"
-    debug_queue="debugq"
-    rclone_version="1.55.0"
-
 
 # Store the stage-in script in a variable called stageScript
 # anything in curly brackets in the string {} is replaced
@@ -53,9 +46,11 @@ stageScript=f"""#!/bin/bash --login
 #SBATCH --account={account}
 #SBATCH --job-name=stageTar
 #SBATCH --partition={copy_queue}
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --export=NONE
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=1G
+#SBATCH --time=00:05:00
 
 module load rclone/{rclone_version}
 
@@ -64,12 +59,6 @@ module load rclone/{rclone_version}
 # Streaming approach
 srun mkdir -p {scratchDir}
 srun rclone cat {acaciaAlias}:{acaciaInPath} -q | tar xf - --directory {scratchDir}/ --use-compress-program="pigz"
-
-# Copy approach
-#cd {scratchDir}
-#srun mc cp --md5 --quiet {acaciaAlias}/{acaciaInPath} {scratchDir}/archive.tar > /dev/null
-#srun tar xf archive.tar
-#rm archive.tar
 """
 
 # Store the job script in a variable called superScript
@@ -79,10 +68,10 @@ superScript=f"""#!/bin/bash --login
 #SBATCH --partition={debug_queue}
 #SBATCH --job-name=superJob
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
+#SBATCH --mem=1G
 #SBATCH --time=00:01:00
-#SBATCH --export=NONE
 
 module load rclone/1.58.1
 
@@ -102,9 +91,11 @@ storeScript=f"""#!/bin/bash --login
 #SBATCH --account={account}
 #SBATCH --job-name=storeTar
 #SBATCH --partition={copy_queue}
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --export=NONE
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=1G
+#SBATCH --time=00:05:00
 
 module load rclone/{rclone_version}
 
@@ -114,11 +105,6 @@ module load rclone/{rclone_version}
 # Use zcf or jcf for a compressed archive
 cd {scratchDir}
 srun tar cf - . --use-compress-program="pigz" | rclone rcat {acaciaAlias}:{acaciaOutPath} -q
-
-# Copy approach
-#srun tar cf archive.tar .
-#srun mc cp --md5 --quiet archive.tar {acaciaAlias}/{acaciaOutPath} > /dev/null
-#rm archive.tar
 """
 
 ### Edit anything below this line at your own risk ###

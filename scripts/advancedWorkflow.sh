@@ -9,8 +9,13 @@ dateTime=$(date +%Y%m%d-LOCAL-%H-%M-%S)
 # Your alias for interacting with Acacia
 acaciaAlias=acacia-mine
 
-# Your chosen bucket name
+# Your chosen bucket name (must edit this)
 BucketName=courses01-acacia-tmp
+
+# Set copy_queue and debug_queue and rclone version
+copy_queue=copy
+debug_queue=debug
+rclone_version=1.63.1
 
 # Path to get files from Acacia, comment out or leave blank (AcaciaInPath=) for no staging 
 acaciaInPath=${BucketName}/simulation.tar.gz
@@ -19,23 +24,11 @@ acaciaInPath=${BucketName}/simulation.tar.gz
 acaciaOutPath=${BucketName}/simulation-${dateTime}.tar.gz
 
 # Path in scratch to work from
-scratchDir=/scratch/${account}/${USER}/working
+scratchDir=/scratch/${account}/${USER}/work
 
 # Do we actually run the super job?
 # Comment out or leave blank (runSuper=) for no super job
 runSuper=yes
-
-# Set copy_queue and debug_queue depending on the hostname
-if [[ "$HOSTNAME" == *"setonix"* ]]
-then
-    copy_queue=copy
-    debug_queue=debug
-    rclone_version=1.58.1
-else
-    copy_queue=copyq
-    debug_queue=debugq
-    rclone_version=1.55.0
-fi
 
 # Store the stage-in script in a variable called stageScript,
 # edit these scripts for your own use.
@@ -50,9 +43,11 @@ stageScript=$(cat <<EOF
 #SBATCH --account=${account}
 #SBATCH --job-name=stageTar
 #SBATCH --partition=${copy_queue}
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --export=NONE
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=1G
+#SBATCH --time=00:05:00
 
 module load rclone/${rclone_version}
 
@@ -61,13 +56,6 @@ module load rclone/${rclone_version}
 # Streaming approach
 srun mkdir -p ${scratchDir}
 srun rclone cat ${acaciaAlias}:${acaciaInPath} -q | tar xf - --directory ${scratchDir}/ --use-compress-program="pigz"
-
-# Copy approach
-#cd ${scratchDir}
-#srun mc cp --md5 --quiet ${acaciaAlias}/${acaciaInPath} \
-# ${scratchDir}/archive.tar > /dev/null
-#srun tar xf archive.tar
-#rm archive.tar
 EOF
 )
 
@@ -79,10 +67,10 @@ superScript=$(cat <<EOF
 #SBATCH --partition=${debug_queue}
 #SBATCH --job-name=superJob
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
+#SBATCH --mem=1G
 #SBATCH --time=00:01:00
-#SBATCH --export=NONE
 
 srun mkdir -p ${scratchDir}
 cd ${scratchDir}
@@ -102,9 +90,11 @@ storeScript=$(cat <<EOF
 #SBATCH --account=${account}
 #SBATCH --job-name=storeTar
 #SBATCH --partition=${copy_queue}
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --export=NONE
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=1G
+#SBATCH --time=00:05:00
 
 module load rclone/${rclone_version}
 
@@ -114,11 +104,6 @@ module load rclone/${rclone_version}
 # Use zcf or jcf for a compressed archive
 cd ${scratchDir}
 srun tar cf - . --use-compress-program="pigz" | rclone rcat ${acaciaAlias}:${acaciaOutPath} -q
-
-# Copy approach
-#srun tar cf archive.tar .
-#srun mc cp --md5 --quiet archive.tar ${acaciaAlias}/${acaciaOutPath} > /dev/null
-#rm archive.tar
 EOF
 )
 
@@ -126,7 +111,7 @@ EOF
 stageJobID=
 if [ -n "$acaciaInPath" ]
 then
-    stageJobID=$(printf '%s\n' "$stageScript" | sbatch --parsable | cut -d ' ' -f 1)
+    stageJobID=$(printf '%s\n' "$stageScript" | sbatch --parsable)
 
     # Show the staging script
     echo
@@ -142,9 +127,9 @@ if [ -n "$runSuper" ]
 then
     if [ -n "$stageJobID" ]
     then
-        superJobID=$(printf '%s\n' "$superScript" | sbatch --dependency=afterok:$stageJobID --parsable | cut -d ' ' -f 1)
+        superJobID=$(printf '%s\n' "$superScript" | sbatch --dependency=afterok:$stageJobID --parsable)
     else
-        superJobID=$(printf '%s\n' "$superScript" | sbatch --parsable | cut -d ' ' -f 1)
+        superJobID=$(printf '%s\n' "$superScript" | sbatch --parsable)
     fi
 
     # Print out the super script
@@ -162,12 +147,12 @@ if [ -n "$acaciaOutPath" ]
 then
     if [ -n "$superJobID" ]
     then
-        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --dependency=afterok:$superJobID --parsable | cut -d ' ' -f 1)
+        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --dependency=afterok:$superJobID --parsable)
     elif [ -n "$stageJobID" ]
     then
-        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --dependency=afterok:$stageJobID --parsable | cut -d ' ' -f 1)
+        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --dependency=afterok:$stageJobID --parsable)
     else
-        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --parsable | cut -d ' ' -f 1)
+        storeJobID=$(printf '%s\n' "$storeScript" | sbatch --parsable)
     fi
 
     # Show the storage script

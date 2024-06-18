@@ -1,15 +1,15 @@
 #!/bin/bash --login
-#SBATCH --account=courses01
+#SBATCH --account={account}
 #SBATCH --job-name=storeTar
-#SBATCH --partition=copyq
+#SBATCH --partition=copy
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=8
 #SBATCH --export=NONE
 
-module load rclone/1.58.1
+module load rclone/{rclone_version}
 
 # Store files to Acacia
 
 # Streaming approach
-cd /scratch/courses01/cou001/working
-srun tar cf - . --use-compress-program="pigz" | rclone rcat -q acacia-mine:courses01-acacia-tmp/simulation_out.tar.gz
+cd {scratchDir}
+srun tar cf - . --use-compress-program="pigz" | rclone rcat -q {acaciaAlias}:{acaciaOutPath}

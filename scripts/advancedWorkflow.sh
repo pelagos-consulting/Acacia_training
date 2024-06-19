@@ -9,18 +9,19 @@ dateTime=$(date +%Y%m%d-LOCAL-%H-%M-%S)
 # Your alias for interacting with Acacia
 acaciaAlias=acacia-mine
 
-# Your chosen bucket name (must edit this)
-BucketName=courses01-acacia-tmp
+# Your chosen bucket name
+BucketName=courses01-acacia-workshop-tmp
 
-# Set copy_queue and debug_queue and rclone version
+# Set copy_queue and super_queue and rclone version
 copy_queue=copy
-debug_queue=debug
+# Queue to submit jobs
+super_queue=debug
 rclone_version=1.63.1
 
-# Path to get files from Acacia, comment out or leave blank (AcaciaInPath=) for no staging 
+# Path to stage files from Acacia, comment out or leave blank (AcaciaInPath=) for no staging 
 acaciaInPath=${BucketName}/simulation.tar.gz
 
-# Path to put files on Acacia, comment out or leave blank (AcaciaOutPath=) for no storing
+# Path to store files on Acacia, comment out or leave blank (AcaciaOutPath=) for no storing
 acaciaOutPath=${BucketName}/simulation-${dateTime}.tar.gz
 
 # Path in scratch to work from
@@ -52,10 +53,14 @@ stageScript=$(cat <<EOF
 module load rclone/${rclone_version}
 
 # Stage files from Acacia
+echo "Staging file from Acacia"
 
 # Streaming approach
 srun mkdir -p ${scratchDir}
-srun rclone cat ${acaciaAlias}:${acaciaInPath} -q | tar xf - --directory ${scratchDir}/ --use-compress-program="pigz"
+echo "srun mkdir -p ${scratchDir}"
+
+rclone cat ${acaciaAlias}:${acaciaInPath} -q | tar xf - --directory ${scratchDir}/ --use-compress-program="pigz"
+echo "rclone cat ${acaciaAlias}:${acaciaInPath} -q | tar xf - --directory ${scratchDir}/ --use-compress-program=pigz"
 EOF
 )
 
@@ -64,11 +69,11 @@ EOF
 superScript=$(cat <<EOF
 #!/bin/bash --login
 #SBATCH --account=${account}
-#SBATCH --partition=${debug_queue}
+#SBATCH --partition=${super_queue}
 #SBATCH --job-name=superJob
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=1G
 #SBATCH --time=00:01:00
 
@@ -103,7 +108,10 @@ module load rclone/${rclone_version}
 # Simple streaming approach
 # Use zcf or jcf for a compressed archive
 cd ${scratchDir}
+echo cd ${scratchDir}
+
 srun tar cf - . --use-compress-program="pigz" | rclone rcat ${acaciaAlias}:${acaciaOutPath} -q
+echo "srun tar cf - . --use-compress-program=pigz | rclone rcat ${acaciaAlias}:${acaciaOutPath} -q"
 EOF
 )
 

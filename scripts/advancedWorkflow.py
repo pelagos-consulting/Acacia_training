@@ -15,7 +15,7 @@ dateTime=datetime.now().strftime("%Y%m%d-LOCAL-%H-%M-%S")
 acaciaAlias="acacia-mine"
 
 # Your chosen bucket name (must edit this)
-BucketName="courses01-acacia-tmp"
+BucketName="courses01-acacia-workshop-tmp"
 
 # Set copy_queue and debug_queue and rclone version
 copy_queue="copy"
@@ -58,7 +58,9 @@ module load rclone/{rclone_version}
 
 # Streaming approach
 srun mkdir -p {scratchDir}
+echo "srun mkdir -p {scratchDir}"
 srun rclone cat {acaciaAlias}:{acaciaInPath} -q | tar xf - --directory {scratchDir}/ --use-compress-program="pigz"
+echo "srun rclone cat {acaciaAlias}:{acaciaInPath} -q | tar xf - --directory {scratchDir}/ --use-compress-program=pigz"
 """
 
 # Store the job script in a variable called superScript
@@ -73,7 +75,7 @@ superScript=f"""#!/bin/bash --login
 #SBATCH --mem=1G
 #SBATCH --time=00:01:00
 
-module load rclone/1.58.1
+module load rclone/{rclone_version}
 
 srun mkdir -p {scratchDir}
 cd {scratchDir}
@@ -104,7 +106,9 @@ module load rclone/{rclone_version}
 # Streaming approach
 # Use zcf or jcf for a compressed archive
 cd {scratchDir}
+echo "cd {scratchDir}"
 srun tar cf - . --use-compress-program="pigz" | rclone rcat {acaciaAlias}:{acaciaOutPath} -q
+echo "srun tar cf - . --use-compress-program=pigz | rclone rcat {acaciaAlias}:{acaciaOutPath} -q"
 """
 
 ### Edit anything below this line at your own risk ###

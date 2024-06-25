@@ -7915,6 +7915,7 @@ rclone<span class="w"> </span>cat<span class="w"> </span>acacia-mine:<span class
 rclone<span class="w"> </span>cat<span class="w"> </span>acacia-mine:<span class="nv">$BucketName</span>/simulation.tar.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span>-<span class="w"> </span>--directory<span class="o">=</span>simulation2/<span class="w"> </span>--use-compress-program<span class="o">=</span><span class="s2">"pigz"</span>
 ls<span class="w"> </span>simulation2/
 </pre></div>
+<h5 id="Streaming-parts-of-an-object">Streaming parts of an object<a class="anchor-link" href="#Streaming-parts-of-an-object">¶</a></h5><p>With <code>rclone cat</code> there are additional flags you can use, such as <code>--head</code>, <code>--offset</code>, <code>--separator</code>, and <code>--count</code> to stream only portions of the object back to standard output.</p>
 </div>
 </div>
 </div>

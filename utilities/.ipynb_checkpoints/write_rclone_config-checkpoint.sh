@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ${HOME}/acacia_credentials.txt
+source ./acacia_credentials.txt
 
 mkdir -p ${HOME}/.config/rclone
 
